@@ -1,0 +1,85 @@
+/* General Body Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding-top: 20px;
+    margin: 0;
+}
+
+/* ===== Scoreboard Styles ===== */
+:root{
+  --home-accent: #2b7be3;   /* left blue stripe */
+  --away-accent: #ffd400;   /* right yellow stripe */
+  --score-bg:   #c31921;    /* red center background */
+  --bg:         #ffffff;    /* white tiles */
+  --text:       #111;
+  --score-text: #fff;
+  --radius:     10px;
+  --tile-h:     38px;       /* first row height */
+  --pad-x:      12px;       /* horizontal padding */
+  --font-size:  18px;       /* base font size */
+  --font:       ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.scoreboard{
+  display: inline-grid;
+  grid-template-columns: 1fr auto 1fr;   /* home | score | guest */
+  grid-template-rows: var(--tile-h) auto;/* first row | second row */
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.12);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  font: 600 var(--font-size)/1 var(--font);
+  letter-spacing: .2px;
+  color: var(--text);
+}
+
+.cell{
+  display: grid;
+  place-items: center;
+  padding: 0 var(--pad-x);
+  white-space: nowrap;
+}
+
+/* Top row */
+.home{
+  background: var(--bg);
+  border-left: 6px solid var(--home-accent);   /* colored stripe */
+  justify-items: start; /* Align content to the left */
+  overflow: hidden;     /* Prevent long names from breaking layout */
+}
+.score{
+  background: var(--score-bg);
+  color: var(--score-text);
+  font-weight: 800;
+  padding: 0 calc(var(--pad-x) + 2px);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);       /* readability on video */
+  white-space: nowrap;
+}
+.away{
+  background: var(--bg);
+  border-right: 6px solid var(--away-accent); /* colored stripe */
+  justify-items: end; /* Align content to the right */
+  overflow: hidden;   /* Prevent long names from breaking layout */
+}
+
+/* Second row spans all columns */
+.meta{
+  grid-column: 1 / -1;
+  background: #f6f6f6;
+  font-weight: 700;
+  padding: 6px var(--pad-x);
+  border-top: 1px solid rgba(0,0,0,.08);
+}
+
+/* Optional: compact variation */
+.scoreboard.compact{
+  --tile-h: 32px;
+  --pad-x: 10px;
+  --font-size: 16px;
+}
+
+/* Optional: scale everything together */
+.scoreboard.scale-125{ transform: scale(1.25); transform-origin: top left; }
