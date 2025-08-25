@@ -1,5 +1,7 @@
 import socket
 import json
+import os
+import tempfile
 
 HOST = ''  # Symbolic name meaning all available interfaces
 PORT = 50078  # The port to listen on
@@ -7,15 +9,34 @@ OUTPUT_FILENAME = "match-facts.json"
 
 print(f"Starting UDP server on port {PORT}...")
 
-# Create a UDP socket using a 'with' statement for automatic cleanup
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-    # Allow reusing a local address, helpful for quick server restarts
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # Allow receiving broadcast packets. This must be set before binding.
+def write_json_atomic(path: str, data: dict) -> None:
+    """
+    Write JSON atomically so readers never see a partial file.
+    1) write to a temp file in the same directory
+    2) flush + fsync
+    3) os.replace() to final path (atomic on POSIX/Windows NTFS)
+    """
+    directory = os.path.dirname(path) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, separators=(",", ":"), indent=0)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    finally:
+        # Best-effort cleanup if something failed before replace().
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
+
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    # Bind the socket to the host and port
     s.bind((HOST, PORT))
     print("Server is listening...")
 
@@ -58,9 +79,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 }
 
                 # Write the dictionary to a JSON file, overwriting it each time.
-                with open(OUTPUT_FILENAME, 'w') as json_file:
-                    json.dump(match_facts, json_file, indent=4)
-                print(f"Successfully updated {OUTPUT_FILENAME}")
+                # with open(OUTPUT_FILENAME, 'w') as json_file:
+                #     json.dump(match_facts, json_file, indent=4)
+                # print(f"Successfully updated {OUTPUT_FILENAME}")
+                write_json_atomic(OUTPUT_FILENAME, match_facts)
+                print(f"OK from {addr[0]}:{addr[1]} -> {OUTPUT_FILENAME}")
+
+
             else:
                 print(f"Received packet with {len(fields)} fields, expected at least 13. Skipping.")
 

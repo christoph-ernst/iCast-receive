@@ -1,15 +1,15 @@
 {
-    "time": "01:00",
-    "score_home": "0",
-    "score_guest": "1",
-    "score": "0\u00a0:\u00a01",
-    "period": "2",
-    "time_period": "01:00\u00a0\u00a0\u00a02/3",
-    "home_penalty_1": "",
-    "home_penalty_2": "",
-    "guest_penalty_1": "",
-    "guest_penalty_2": "",
-    "home_team_name": "HOM",
-    "guest_team_name": "GUE",
-    "time_type": "INTERMISSION"
+"time":"12:15",
+"score_home":"0",
+"score_guest":"0",
+"score":"0 : 0",
+"period":"2",
+"time_period":"12:15   2/3",
+"home_penalty_1":"88 00:12",
+"home_penalty_2":"",
+"guest_penalty_1":"99 00:16",
+"guest_penalty_2":"89 00:16",
+"home_team_name":"HOM",
+"guest_team_name":"GUE",
+"time_type":"GAME TIME"
 }
