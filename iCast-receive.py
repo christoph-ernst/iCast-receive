@@ -39,8 +39,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             if len(fields) >= 13:
                 # Map fields to a dictionary based on the provided structure.
                 # Indices are 0-based, so Field #1 is at index 0.
-                score = fields[1] + ":" + fields[2]
-                time_period = fields[0] + "\xa0\xa0\xa0\xa0"  + fields[3] + "/3"
+                score = fields[1] + "\xa0:\xa0" + fields[2]
+                time_period = fields[0] + "\xa0\xa0\xa0"  + fields[3] + "/3"
                 match_facts = {
                     "time": fields[0],
                     "score_home": fields[1],

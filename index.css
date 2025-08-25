@@ -16,7 +16,7 @@ body {
   --bg:         #ffffff;    /* white tiles */
   --text:       #111;
   --score-text: #fff;
-  --radius:     10px;
+  --radius:     0px;
   --tile-h:     38px;       /* first row height */
   --pad-x:      12px;       /* horizontal padding */
   --font-size:  18px;       /* base font size */
@@ -51,9 +51,10 @@ body {
   overflow: hidden;     /* Prevent long names from breaking layout */
 }
 .score{
+  font-size: 130%;
   background: var(--score-bg);
   color: var(--score-text);
-  font-weight: 800;
+  font-weight: 700;
   padding: 0 calc(var(--pad-x) + 2px);
   text-shadow: 0 1px 0 rgba(0,0,0,.25);       /* readability on video */
   white-space: nowrap;
@@ -67,12 +68,18 @@ body {
 
 /* Second row spans all columns */
 .meta{
-  grid-column: 1 / -1;
+  /* grid-column: 1 / -1; */
+  grid-column: 2 / 3;
   background: #f6f6f6;
   font-weight: 700;
   padding: 6px var(--pad-x);
   border-top: 1px solid rgba(0,0,0,.08);
 }
+
+
+
+
+
 
 /* Optional: compact variation */
 .scoreboard.compact{
