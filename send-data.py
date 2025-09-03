@@ -9,7 +9,7 @@ from udp_payloads import payloads
 # The server's port
 PORT = 50078
 # The global broadcast address
-BROADCAST_ADDR = "255.255.255.255"
+BROADCAST_ADDR = "127.0.0.1"
 
 # --- Main execution ---
 # Create a UDP socket
@@ -28,7 +28,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client_socket:
                 client_socket.sendto(payload, (BROADCAST_ADDR, PORT))
                 # Use end='\r' to update the line in place
                 print(f"Sent packet {i + 1}/{len(payloads)}", end='\r')
-                time.sleep(0.1)  # Small delay to simulate the stream
+                time.sleep(0.03)  # Small delay to simulate the stream
     except KeyboardInterrupt:
         print("\nStopped by user.")
     except Exception as e:

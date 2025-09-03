@@ -20,22 +20,26 @@ body {
   --radius:     0px;
   --tile-h:     38px;       /* first row height */
   --pad-x:      12px;       /* horizontal padding */
+  --pad-y:      3px;
   --font-size:  18px;       /* base font size */
   --font:       ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --ppw: 60px;   /* width of a PP time cell */
+  --pp-tag: 46px;/* width of "PP" tag cell */
+  --team: 1fr;   /* team name columns */
+  --score: auto; /* score column */
 }
 
-.scoreboard{
-  display: inline-grid;
-  grid-template-columns: auto auto auto 1fr auto 1fr auto auto auto;   /* home | score | guest */
-  grid-template-rows: var(--tile-h) auto;/* first row | second row */
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,.12);
-  box-shadow: 0 2px 8px rgba(0,0,0,.08);
-  font: 600 var(--font-size)/1 var(--font);
-  letter-spacing: .2px;
-  color: var(--text);
+.scoreboard {
+  display: grid;
+  grid-template-columns:
+    var(--ppw) var(--ppw) var(--pp-tag)
+    var(--team) var(--score) var(--team)
+    var(--pp-tag) var(--ppw) var(--ppw);
+  gap: 0px;
+  width: max-content;
+  margin: 0 auto;
 }
+
 
 /* Fix each tile to a column in the 9-col grid */
 .pp-left-2 { grid-column: 1; }
@@ -50,34 +54,39 @@ body {
 .pp-right-1   { grid-column: 8; }
 .pp-right-2   { grid-column: 9; }
 
+
 .cell{
   display: grid;
   place-items: center;
-  padding: 0 var(--pad-x);
+  padding: var(--pad-y) var(--pad-x);
   white-space: nowrap;
 }
 
 /* Top row */
 .home{
   background: var(--bg);
-  border-left: 6px solid var(--home-accent);   /* colored stripe */
+  border-left: 8px solid var(--home-accent);   /* colored stripe */
   justify-items: start; /* Align content to the left */
   overflow: hidden;     /* Prevent long names from breaking layout */
+  font-weight: 700;
+  color: var(--text);
 }
 .score{
   font-size: 130%;
   background: var(--score-bg);
   color: var(--score-text);
   font-weight: 700;
-  padding: 0 calc(var(--pad-x) + 2px);
+  padding: var(--pad-y) var(--pad-x);
   text-shadow: 0 1px 0 rgba(0,0,0,.25);       /* readability on video */
   white-space: nowrap;
 }
 .away{
   background: var(--bg);
-  border-right: 6px solid var(--away-accent); /* colored stripe */
+  border-right: 8px solid var(--away-accent); /* colored stripe */
   justify-items: end; /* Align content to the right */
   overflow: hidden;   /* Prevent long names from breaking layout */
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* Second row spans all columns */
@@ -86,16 +95,18 @@ body {
   grid-column: 5 / 6;
   background: #f6f6f6;
   font-weight: 700;
-  padding: 6px var(--pad-x);
+  padding: var(--pad-y) var(--pad-x);
   border-top: 1px solid rgba(0,0,0,.08);
+  color: var(--text);
 }
-
 
 .pp-left-tag,
 .pp-right-tag{
   background: var(--bg);
   font-weight: 700;
-  padding: 0 var(--pad-x);
+  padding: var(--pad-y) var(--pad-x);
+  color: var(--text);
+
 }
 
 /* --- NEW: PowerPlay tiles --- */
@@ -106,36 +117,25 @@ body {
   background: var(--pp-bg);
   color: #fff;
   font-weight: 800;
-  padding: 0 calc(var(--pad-x) + 2px);
-  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  padding: var(--pad-y) var(--pad-x);
 }
 
-
-/* Hidden by default */
-.pp-left-1,.pp-left-2,.pp-left-tag,
-.pp-right-1,.pp-right-2,.pp-right-tag{ display:none; }
-
-
-/* Show individually */
-.scoreboard.has-pp-left1  .pp-left-1  { display:grid; }
-.scoreboard.has-pp-left2  .pp-left-2  { display:grid; }
-.scoreboard.has-pp-right1 .pp-right-1 { display:grid; }
-.scoreboard.has-pp-right2 .pp-right-2 { display:grid; }
-
-/* Tags show if any PP on that side is active */
-.scoreboard.has-pp-left1  .pp-left-tag,
-.scoreboard.has-pp-left2  .pp-left-tag{ display:grid; }
-
-.scoreboard.has-pp-right1 .pp-right-tag,
-.scoreboard.has-pp-right2 .pp-right-tag{ display:grid; }
-
-
-/* Optional: compact variation */
-.scoreboard.compact{
-  --tile-h: 32px;
-  --pad-x: 10px;
-  --font-size: 16px;
+.pp-left-1,
+.pp-left-2,
+.pp-left-tag,
+.pp-right-1,
+.pp-right-2,
+.pp-right-tag {
+  visibility: hidden;
+  pointer-events: none;
 }
 
-/* Optional: scale everything together */
-.scoreboard.scale-125{ transform: scale(1.25); transform-origin: top left; }
+.scoreboard.has-pp-left1  .pp-left-1   { visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-left2  .pp-left-2   { visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-left1  .pp-left-tag { visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-left2  .pp-left-tag { visibility: visible; pointer-events: auto; }
+
+.scoreboard.has-pp-right1 .pp-right-1  { visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-right2 .pp-right-2  { visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-right1 .pp-right-tag{ visibility: visible; pointer-events: auto; }
+.scoreboard.has-pp-right2 .pp-right-tag{ visibility: visible; pointer-events: auto; }

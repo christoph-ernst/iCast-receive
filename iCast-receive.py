@@ -9,6 +9,47 @@ OUTPUT_FILENAME = "match-facts.json"
 
 print(f"Starting UDP server on port {PORT}...")
 
+def extract_penalty_time(field: str) -> str | None:
+    """
+    Extracts just the penalty time from a 'playernumber penalty_time' string.
+    Returns None if the field is empty or invalid.
+    """
+    if not field:
+        return None
+    parts = field.strip().split()
+    if len(parts) < 2:
+        return None  # no penalty time present
+    return parts[-1]  # last token is the time
+
+
+def format_period_label(time_type: str , time: str, period: str) -> str:
+    """
+    Map the incoming period field to '1/3', '2/3', '3/3', or 'OT'.
+    Accepts common variants like '1','2','3','4','OT','Overtime', etc.
+    """
+    
+    if time_type == "GAME TIME":
+        if period is None:
+            return ""
+        token = period.strip().lower()
+        # Direct known forms
+        if token in {"1", "p1", "period1", "first"}:
+            return time + "\xa0\xa0\xa01/3"
+        if token in {"2", "p2", "period2", "second"}:
+            return time + "\xa0\xa0\xa02/3"
+        if token in {"3", "p3", "period3", "third"}:
+            return time + "\xa0\xa0\xa03/3"
+        if token in {"4", "ot", "overtime", "extra", "sudden death", "suddendeath"}:
+            return time + "\xa0\xa0\xa0OT"
+
+    elif time_type == "INTERMISSION":
+        return time + " Pause"
+    
+    elif time_type == "TIME-OUT":
+        return "Time Out"
+
+
+
 
 def write_json_atomic(path: str, data: dict) -> None:
     """
@@ -40,6 +81,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     s.bind((HOST, PORT))
     print("Server is listening...")
 
+
+
+
+
     while True:
         try:
             data, addr = s.recvfrom(1024)
@@ -60,19 +105,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             if len(fields) >= 13:
                 # Map fields to a dictionary based on the provided structure.
                 # Indices are 0-based, so Field #1 is at index 0.
+
+                period_label = format_period_label(fields[12], fields[0], fields[3])
+
                 score = fields[1] + "\xa0:\xa0" + fields[2]
-                time_period = fields[0] + "\xa0\xa0\xa0"  + fields[3] + "/3"
+                # time_period = fields[0] + "\xa0\xa0\xa0"  + fields[3] + "/3"
                 match_facts = {
                     "time": fields[0],
                     "score_home": fields[1],
                     "score_guest": fields[2],
                     "score" : score,
                     "period": fields[3],
-                    "time_period": time_period,
-                    "home_penalty_1": fields[4],
-                    "home_penalty_2": fields[5],
-                    "guest_penalty_1": fields[6],
-                    "guest_penalty_2": fields[7],
+                    "time_period": period_label,
+                    "home_penalty_1": extract_penalty_time(fields[4]),
+                    "home_penalty_2": extract_penalty_time(fields[5]),
+                    "guest_penalty_1": extract_penalty_time(fields[6]),
+                    "guest_penalty_2": extract_penalty_time(fields[7]),
                     "home_team_name": fields[10],
                     "guest_team_name": fields[11],
                     "time_type": fields[12],
