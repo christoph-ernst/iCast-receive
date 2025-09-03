@@ -1,15 +1,15 @@
 {
-"time":"13:45",
+"time":"00:10",
 "score_home":"2",
 "score_guest":"1",
 "score":"2 : 1",
 "period":"4",
-"time_period":"13:45   4/3",
-"home_penalty_1":"",
-"home_penalty_2":"",
-"guest_penalty_1":"",
-"guest_penalty_2":"",
+"time_period":"OT",
+"home_penalty_1":null,
+"home_penalty_2":null,
+"guest_penalty_1":null,
+"guest_penalty_2":null,
 "home_team_name":"HOM",
 "guest_team_name":"GUE",
-"time_type":"GAME TIME"
+"time_type":"TIME-OUT"
 }

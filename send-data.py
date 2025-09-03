@@ -9,7 +9,7 @@ from udp_payloads import payloads
 # The server's port
 PORT = 50078
 # The global broadcast address
-BROADCAST_ADDR = "255.255.255.255"
+BROADCAST_ADDR = "127.0.0.1"
 
 # --- Main execution ---
 # Create a UDP socket
