@@ -22,24 +22,31 @@ def extract_penalty_time(field: str) -> str | None:
     return parts[-1]  # last token is the time
 
 
-def format_period_label(time: str, period: str) -> str:
+def format_period_label(time_type: str , time: str, period: str) -> str:
     """
     Map the incoming period field to '1/3', '2/3', '3/3', or 'OT'.
     Accepts common variants like '1','2','3','4','OT','Overtime', etc.
     """
-    if period is None:
-        return ""
-    token = period.strip().lower()
+    
+    if time_type == "GAME TIME":
+        if period is None:
+            return ""
+        token = period.strip().lower()
+        # Direct known forms
+        if token in {"1", "p1", "period1", "first"}:
+            return time + "\xa0\xa0\xa01/3"
+        if token in {"2", "p2", "period2", "second"}:
+            return time + "\xa0\xa0\xa02/3"
+        if token in {"3", "p3", "period3", "third"}:
+            return time + "\xa0\xa0\xa03/3"
+        if token in {"4", "ot", "overtime", "extra", "sudden death", "suddendeath"}:
+            return time + "\xa0\xa0\xa0OT"
 
-    # Direct known forms
-    if token in {"1", "p1", "period1", "first"}:
-        return time + "\xa0\xa0\xa01/3"
-    if token in {"2", "p2", "period2", "second"}:
-        return time + "\xa0\xa0\xa02/3"
-    if token in {"3", "p3", "period3", "third"}:
-        return time + "\xa0\xa0\xa03/3"
-    if token in {"4", "ot", "overtime", "extra", "sudden death", "suddendeath"}:
-        return "OT"
+    elif time_type == "INTERMISSION":
+        return time + " Pause"
+    
+    elif time_type == "TIME-OUT":
+        return "Time Out"
 
 
 
@@ -99,7 +106,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 # Map fields to a dictionary based on the provided structure.
                 # Indices are 0-based, so Field #1 is at index 0.
 
-                period_label = format_period_label(fields[0], fields[3])
+                period_label = format_period_label(fields[12], fields[0], fields[3])
 
                 score = fields[1] + "\xa0:\xa0" + fields[2]
                 # time_period = fields[0] + "\xa0\xa0\xa0"  + fields[3] + "/3"
