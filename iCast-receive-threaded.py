@@ -24,10 +24,11 @@ import time
 import json
 import os
 import tempfile
+import argparse
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Deque, Tuple, Optional, Dict, Any
+from typing import Deque, Tuple, Optional, Dict, Any, List
 
 # ---------------------- Configuration ----------------------
 
@@ -36,9 +37,10 @@ class Config:
     host: str = "0.0.0.0"
     port: int = 50078
     output_path: str = "match-facts.json"
-    retention_cs: int = 300        # how long datagrams remain in the queue (centiseconds)
-    writer_poll_ms: int = 100      # writer checks/purges every N milliseconds
+    retention_cs: int = 1000      # MIN time to keep items in queue (100 = 1s; 1000 = 10s) 
+    writer_poll_ms: int = 20      # writer checks every N milliseconds
     udp_bufsize: int = 4096
+    debug: bool = False            # enable debug logging
 
 CFG = Config()
 
@@ -50,23 +52,38 @@ class TimedQueue:
         self._dq: Deque[Tuple[float, bytes]] = deque()
         self._lock = threading.Lock()
 
-    def push(self, ts: float, payload: bytes) -> None:
+    def push(self, ts: float, payload: bytes, debug: bool=False) -> None:
         with self._lock:
             self._dq.append((ts, payload))
+        if debug:
+            try:
+                decoded = decode_payload(payload)
+            except Exception:
+                decoded = "<decode-error>"
+            print(f"[DEBUG] PUSH @ {ts:.3f} | {len(payload)} bytes | decoded='{decoded}'")
 
     def purge_older_than(self, cutoff_ts: float) -> None:
         with self._lock:
             while self._dq and self._dq[0][0] < cutoff_ts:
                 self._dq.popleft()
 
-    def pop_latest(self) -> Optional[Tuple[float, bytes]]:
+    def pop_latest_matured(self, cutoff_ts: float, debug: bool=False) -> Optional[Tuple[float, bytes]]:
+        latest: Optional[Tuple[float, bytes]] = None
+        removed = 0
         with self._lock:
-            if not self._dq:
-                return None
-            latest = self._dq.pop()
-            # Drop any older items still in the queue; we only need freshest state
-            self._dq.clear()
-            return latest
+            # Pop from LEFT while items are mature
+            while self._dq and self._dq[0][0] <= cutoff_ts:
+                latest = self._dq.popleft()
+                removed += 1
+        if latest and debug:
+            ts, payload = latest
+            try:
+                decoded = decode_payload(payload)
+            except Exception:
+                decoded = "<decode-error>"
+            print(f"[DEBUG] POP  @ {ts:.3f} | matured count this cycle={removed} | decoded='{decoded}'")
+        return latest
+
 
     def size(self) -> int:
         with self._lock:
@@ -174,11 +191,11 @@ def parse_message_to_match_facts(decoded: str) -> Dict[str, Any]:
     clock = facts["time"] or ""
     label = None
     if facts["time_type"] in ("INTERMISSION", "PAUSE"):
-        label = "Pause"
+        label =  f"{clock} Pause"
     elif facts["time_type"] in ("TIME-OUT", "TIMEOUT"):
         label = "Time Out"
     else:
-        if period_raw.upper() in ("OT", "OVERTIME"):
+        if period_raw.upper() in ("4"):
             label = f"{clock}  OT" if clock else "OT"
         elif period_raw:
             label = f"{clock}  {period_raw}/3" if clock else f"{period_raw}/3"
@@ -200,22 +217,24 @@ def receiver_thread(cfg: Config, q: TimedQueue, stop: threading.Event) -> None:
                 s.settimeout(0.5)
                 data, _addr = s.recvfrom(cfg.udp_bufsize)
                 ts = time.time()
-                q.push(ts, data)
+                q.push(ts, data, debug=cfg.debug)
+
             except socket.timeout:
                 continue
             except Exception as e:
                 print(f"[receiver] Error: {e}")
 
+
+
 def writer_thread(cfg: Config, q: TimedQueue, stop: threading.Event) -> None:
     interval = max(1, cfg.writer_poll_ms) / 1000.0
     retention_s = max(0, cfg.retention_cs) / 100.0
-    print(f"[writer] Poll interval: {interval:.3f}s  |  Retention: {retention_s:.2f}s")
+    print(f"[writer] Poll interval: {interval:.3f}s  |  Min retention: {retention_s:.2f}s")
     while not stop.is_set():
         now = time.time()
         cutoff = now - retention_s
-        q.purge_older_than(cutoff)
-
-        item = q.pop_latest()
+        # Only pop items that have matured long enough
+        item = q.pop_latest_matured(cutoff_ts=cutoff, debug=cfg.debug)
         if item:
             ts, raw = item
             decoded = decode_payload(raw)
@@ -234,6 +253,18 @@ def writer_thread(cfg: Config, q: TimedQueue, stop: threading.Event) -> None:
 # ---------------------- Entry point ------------------------
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="iCast threaded receiver with enforced queue retention")
+    parser.add_argument("--debug", action="store_true", help="Enable debug printing for push/pop")
+    parser.add_argument("--retention-cs", type=int, help="Retention time in centiseconds (override config)")
+    parser.add_argument("--writer-poll-ms", type=int, help="Writer poll interval in milliseconds (override config)")
+    args = parser.parse_args()
+
+    if args.retention_cs is not None:
+        CFG.retention_cs = max(0, args.retention_cs)
+    if args.writer_poll_ms is not None:
+        CFG.writer_poll_ms = max(1, args.writer_poll_ms)
+    CFG.debug = args.debug
+
     q = TimedQueue()
     stop = threading.Event()
 
@@ -243,7 +274,7 @@ def main() -> None:
     recv_t.start()
     writ_t.start()
 
-    print(f"Starting UDP server on port {CFG.port} with retention {CFG.retention_cs} cs.")
+    print(f"Starting UDP server on port {CFG.port} with MIN retention {CFG.retention_cs} cs.")
     print(f"Writing JSON to {CFG.output_path}")
     try:
         while True:
