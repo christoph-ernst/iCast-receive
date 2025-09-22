@@ -149,9 +149,9 @@ def parse_message_to_match_facts(decoded: str) -> Dict[str, Any]:
         facts["score"] = f'{facts["score_home"]}:{facts["score_guest"]}'
 
     facts["period"] = safe_get(3)         # e.g., "1", "2", "3", "OT"
-    facts["time_type"] = safe_get(4)      # e.g., "GAME TIME", "INTERMISSION", "TIME-OUT"
-    facts["home_team_name"] = safe_get(5)
-    facts["guest_team_name"] = safe_get(6)
+    facts["time_type"] = safe_get(12)      # e.g., "GAME TIME", "INTERMISSION", "TIME-OUT"
+    facts["home_team_name"] = safe_get(10)
+    facts["guest_team_name"] = safe_get(11)
 
     # Penalties (free-form tokens; keep last token if it looks like a clock)
     def normalize_pen(v: Optional[str]) -> Optional[str]:
@@ -164,10 +164,10 @@ def parse_message_to_match_facts(decoded: str) -> Dict[str, Any]:
                 return cand
         return v
 
-    facts["home_penalty_1"] = normalize_pen(safe_get(7))
-    facts["home_penalty_2"] = normalize_pen(safe_get(8))
-    facts["guest_penalty_1"] = normalize_pen(safe_get(9))
-    facts["guest_penalty_2"] = normalize_pen(safe_get(10))
+    facts["home_penalty_1"] = normalize_pen(safe_get(4))
+    facts["home_penalty_2"] = normalize_pen(safe_get(5))
+    facts["guest_penalty_1"] = normalize_pen(safe_get(6))
+    facts["guest_penalty_2"] = normalize_pen(safe_get(7))
 
     # Build time_period label
     period_raw = facts["period"] or ""
