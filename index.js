@@ -1,10 +1,14 @@
-// index.js (replace everything with this)
+const POLL_MS = 100;
+const CONFIG_POLL_MS = 2000; // config changes are infrequent
 
-const POLL_MS = 100; // adjust if you like
+let config = {};
 
 function getMatchfacts() {
-  // cache-bust so we always get the latest file
   return fetch(`match-facts.json?_=${Date.now()}`).then(r => r.json());
+}
+
+function getConfig() {
+  return fetch(`config.json?_=${Date.now()}`).then(r => r.json());
 }
 
 function setText(id, value) {
@@ -12,47 +16,54 @@ function setText(id, value) {
   if (el) el.textContent = value ?? "";
 }
 
+function applyConfig(cfg) {
+  const root = document.documentElement.style;
+  if (cfg.home_accent) root.setProperty("--home-accent", cfg.home_accent);
+  if (cfg.away_accent) root.setProperty("--away-accent", cfg.away_accent);
+  config = cfg;
+}
+
 function updateCoreFields(mf) {
   setText("time_period", mf.time_period);
   setText("score", mf.score);
   setText("period", mf.period);
-  setText("home_team_name", mf.home_team_name);
-  setText("guest_team_name", mf.guest_team_name);
+  // Config team names take priority over hardware values
+  setText("home_team_name", config.home_team_name || mf.home_team_name);
+  setText("guest_team_name", config.guest_team_name || mf.guest_team_name);
   setText("time_type", mf.time_type);
 }
 
 function updatePowerPlays(mf) {
   const board = document.querySelector(".scoreboard");
 
-  // LEFT (guest)
   const left1Active = !!mf.guest_penalty_1;
   const left2Active = !!mf.guest_penalty_2;
-
-  // RIGHT (home)
   const right1Active = !!mf.home_penalty_1;
   const right2Active = !!mf.home_penalty_2;
 
-  // Text
   setText("pp_left_clock1", mf.guest_penalty_1 || "");
   setText("pp_left_clock2", mf.guest_penalty_2 || "");
   setText("pp_right_clock1", mf.home_penalty_1 || "");
   setText("pp_right_clock2", mf.home_penalty_2 || "");
 
-  // Classes to show/hide PP tiles via your CSS
   board.classList.toggle("has-pp-left1", left1Active);
   board.classList.toggle("has-pp-left2", left2Active);
   board.classList.toggle("has-pp-right1", right1Active);
   board.classList.toggle("has-pp-right2", right2Active);
 }
 
-function updateMatchfacts(mf) {
-  updateCoreFields(mf);
-  updatePowerPlays(mf);
-}
-
-// Poll and update UI
+// Poll match data
 setInterval(() => {
   getMatchfacts()
-    .then(updateMatchfacts)
-    .catch(err => console.error("Could not fetch or update match facts:", err));
+    .then(mf => { updateCoreFields(mf); updatePowerPlays(mf); })
+    .catch(err => console.error("Could not fetch match facts:", err));
 }, POLL_MS);
+
+// Poll config (less frequently)
+function pollConfig() {
+  getConfig()
+    .then(applyConfig)
+    .catch(() => {}) // config.json missing is non-fatal
+    .finally(() => setTimeout(pollConfig, CONFIG_POLL_MS));
+}
+pollConfig(); // start immediately, then recurse

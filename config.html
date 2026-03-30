@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scoreboard Configuration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 28px;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #6b7db3;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #aab;
+    }
+
+    input[type="text"] {
+      background: #0d1b3e;
+      border: 1px solid #1e3a6e;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 10px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      letter-spacing: 0.04em;
+    }
+    input[type="text"]:focus { border-color: #4a7ede; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="color"] {
+      width: 48px;
+      height: 44px;
+      border: 1px solid #1e3a6e;
+      border-radius: 6px;
+      background: #0d1b3e;
+      cursor: pointer;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+
+    .color-hex {
+      background: #0d1b3e;
+      border: 1px solid #1e3a6e;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: ui-monospace, monospace;
+      padding: 10px 12px;
+      flex: 1;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .color-hex:focus { border-color: #4a7ede; }
+
+    .preview {
+      height: 4px;
+      border-radius: 2px;
+      margin-top: 4px;
+      transition: background 0.2s;
+    }
+
+    button {
+      margin-top: 28px;
+      width: 100%;
+      background: #2b7be3;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:hover { background: #1a6ad4; }
+    button:active { transform: scale(0.98); }
+
+    .status {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      text-align: center;
+      min-height: 1.2em;
+      color: #6ee7b7;
+    }
+    .status.error { color: #fca5a5; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Scoreboard Configuration</h1>
+
+  <div class="section-label">Team Names</div>
+
+  <div class="field">
+    <label for="home_team_name">Home team</label>
+    <input type="text" id="home_team_name" maxlength="20" placeholder="HOM">
+  </div>
+  <div class="field">
+    <label for="guest_team_name">Away team</label>
+    <input type="text" id="guest_team_name" maxlength="20" placeholder="GUE">
+  </div>
+
+  <div class="section-label">Accent Colors</div>
+
+  <div class="field">
+    <label>Home accent</label>
+    <div class="color-row">
+      <input type="color" id="home_accent_picker">
+      <input type="text" class="color-hex" id="home_accent_hex" maxlength="7" placeholder="#2b7be3">
+    </div>
+    <div class="preview" id="home_preview"></div>
+  </div>
+
+  <div class="field">
+    <label>Away accent</label>
+    <div class="color-row">
+      <input type="color" id="away_accent_picker">
+      <input type="text" class="color-hex" id="away_accent_hex" maxlength="7" placeholder="#ffd400">
+    </div>
+    <div class="preview" id="away_preview"></div>
+  </div>
+
+  <button id="save_btn">Save</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  function syncPickerFromHex(hexId, pickerId, previewId) {
+    const hex = $(hexId).value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      $(pickerId).value = hex;
+      $(previewId).style.background = hex;
+    }
+  }
+
+  function syncHexFromPicker(pickerId, hexId, previewId) {
+    const val = $(pickerId).value;
+    $(hexId).value = val;
+    $(previewId).style.background = val;
+  }
+
+  $("home_accent_hex").addEventListener("input", () => syncPickerFromHex("home_accent_hex", "home_accent_picker", "home_preview"));
+  $("home_accent_picker").addEventListener("input", () => syncHexFromPicker("home_accent_picker", "home_accent_hex", "home_preview"));
+  $("away_accent_hex").addEventListener("input", () => syncPickerFromHex("away_accent_hex", "away_accent_picker", "away_preview"));
+  $("away_accent_picker").addEventListener("input", () => syncHexFromPicker("away_accent_picker", "away_accent_hex", "away_preview"));
+
+  async function loadConfig() {
+    try {
+      const cfg = await fetch(`config.json?_=${Date.now()}`).then(r => r.json());
+      if (cfg.home_team_name) $("home_team_name").value = cfg.home_team_name;
+      if (cfg.guest_team_name) $("guest_team_name").value = cfg.guest_team_name;
+      if (cfg.home_accent) {
+        $("home_accent_hex").value = cfg.home_accent;
+        $("home_accent_picker").value = cfg.home_accent;
+        $("home_preview").style.background = cfg.home_accent;
+      }
+      if (cfg.away_accent) {
+        $("away_accent_hex").value = cfg.away_accent;
+        $("away_accent_picker").value = cfg.away_accent;
+        $("away_preview").style.background = cfg.away_accent;
+      }
+    } catch (e) {
+      showStatus("Could not load current config.", true);
+    }
+  }
+
+  function showStatus(msg, isError = false) {
+    const el = $("status");
+    el.textContent = msg;
+    el.className = "status" + (isError ? " error" : "");
+    if (!isError) setTimeout(() => { el.textContent = ""; }, 3000);
+  }
+
+  $("save_btn").addEventListener("click", async () => {
+    const homeHex = $("home_accent_hex").value.trim();
+    const awayHex = $("away_accent_hex").value.trim();
+
+    if (homeHex && !/^#[0-9a-fA-F]{6}$/.test(homeHex)) {
+      return showStatus("Home accent must be a valid hex color (e.g. #2b7be3).", true);
+    }
+    if (awayHex && !/^#[0-9a-fA-F]{6}$/.test(awayHex)) {
+      return showStatus("Away accent must be a valid hex color (e.g. #ffd400).", true);
+    }
+
+    const payload = {
+      home_team_name: $("home_team_name").value.trim(),
+      guest_team_name: $("guest_team_name").value.trim(),
+      home_accent: homeHex,
+      away_accent: awayHex,
+    };
+
+    try {
+      const res = await fetch("/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        showStatus("Saved successfully.");
+      } else {
+        const err = await res.json();
+        showStatus("Error: " + (err.error ?? "unknown"), true);
+      }
+    } catch (e) {
+      showStatus("Could not reach server.", true);
+    }
+  });
+
+  loadConfig();
+</script>
+</body>
+</html>
