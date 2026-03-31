@@ -1,6 +1,3 @@
-"""
-Note from 2026 03 29
-"""
 import socket
 import json
 import os
@@ -46,25 +43,40 @@ def format_period_label(time_type: str , time: str, period: str) -> str:
             return time + "\xa0\xa0\xa03/3"
         if token in {"4", "ot", "overtime", "extra", "sudden death", "suddendeath"}:
             return time + "\xa0\xa0\xa0OT"
+        return ""
 
     elif time_type == "INTERMISSION":
         return time + " Pause"
     
     elif time_type == "TIME-OUT":
         return "Time Out"
+    return ""
 
 
+_delay_tenths_cache: int = 0
+_delay_cache_lock = threading.Lock()
 
-
-def read_delay_tenths() -> int:
-    """Read delay_tenths from config.json. Returns 0 on any error."""
+def _reload_delay_tenths() -> None:
+    """Re-read delay_tenths from config.json and update the cache."""
+    global _delay_tenths_cache
     try:
         with open(CONFIG_FILENAME, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-        val = int(cfg.get("delay_tenths", 0))
-        return max(0, val)
+        val = max(0, int(cfg.get("delay_tenths", 0)))
     except Exception:
-        return 0
+        val = 0
+    with _delay_cache_lock:
+        _delay_tenths_cache = val
+
+def _start_config_watcher(interval: float = 2.0) -> None:
+    """Poll config.json every `interval` seconds to refresh the delay cache."""
+    _reload_delay_tenths()
+    def _tick():
+        _reload_delay_tenths()
+        threading.Timer(interval, _tick).start()
+    threading.Timer(interval, _tick).start()
+
+_start_config_watcher()
 
 
 def write_json_atomic(path: str, data: dict) -> None:
@@ -78,7 +90,7 @@ def write_json_atomic(path: str, data: dict) -> None:
     fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, separators=(",", ":"), indent=0)
+            json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp_path, path)
@@ -125,7 +137,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 period_label = format_period_label(fields[12], fields[0], fields[3])
 
                 score = fields[1] + "\xa0:\xa0" + fields[2]
-                # time_period = fields[0] + "\xa0\xa0\xa0"  + fields[3] + "/3"
                 match_facts = {
                     "time": fields[0],
                     "score_home": fields[1],
@@ -142,11 +153,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     "time_type": fields[12],
                 }
 
-                # Write the dictionary to a JSON file, overwriting it each time.
-                # with open(OUTPUT_FILENAME, 'w') as json_file:
-                #     json.dump(match_facts, json_file, indent=4)
-                # print(f"Successfully updated {OUTPUT_FILENAME}")
-                delay_tenths = read_delay_tenths()
+                with _delay_cache_lock:
+                    delay_tenths = _delay_tenths_cache
                 delay_seconds = delay_tenths / 10
                 if delay_seconds > 0:
                     print(f"Scheduling write in {delay_seconds:.1f}s (delay_tenths={delay_tenths})")

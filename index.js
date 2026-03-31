@@ -2,6 +2,7 @@ const POLL_MS = 100;
 const CONFIG_POLL_MS = 2000; // config changes are infrequent
 
 let config = {};
+const board = document.querySelector(".scoreboard");
 
 function getMatchfacts() {
   return fetch(`match-facts.json?_=${Date.now()}`).then(r => r.json());
@@ -34,8 +35,6 @@ function updateCoreFields(mf) {
 }
 
 function updatePowerPlays(mf) {
-  const board = document.querySelector(".scoreboard");
-
   const left1Active = !!mf.guest_penalty_1;
   const left2Active = !!mf.guest_penalty_2;
   const right1Active = !!mf.home_penalty_1;
@@ -52,12 +51,14 @@ function updatePowerPlays(mf) {
   board.classList.toggle("has-pp-right2", right2Active);
 }
 
-// Poll match data
-setInterval(() => {
+// Poll match data (setTimeout recursion prevents overlapping fetches)
+function pollMatchfacts() {
   getMatchfacts()
     .then(mf => { updateCoreFields(mf); updatePowerPlays(mf); })
-    .catch(err => console.error("Could not fetch match facts:", err));
-}, POLL_MS);
+    .catch(err => console.error("Could not fetch match facts:", err))
+    .finally(() => setTimeout(pollMatchfacts, POLL_MS));
+}
+pollMatchfacts();
 
 // Poll config (less frequently)
 function pollConfig() {
