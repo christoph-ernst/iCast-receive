@@ -6,7 +6,7 @@ Run with: python3 serve.py
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import json
 
-ALLOWED_CONFIG_KEYS = {"home_team_name", "guest_team_name", "home_accent", "away_accent"}
+ALLOWED_CONFIG_KEYS = {"home_team_name", "guest_team_name", "home_accent", "away_accent", "delay_tenths"}
 
 class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -15,7 +15,11 @@ class Handler(SimpleHTTPRequestHandler):
             body = self.rfile.read(length)
             try:
                 data = json.loads(body)
-                filtered = {k: str(v) for k, v in data.items() if k in ALLOWED_CONFIG_KEYS}
+                int_keys = {"delay_tenths"}
+                filtered = {
+                    k: (int(v) if k in int_keys else str(v))
+                    for k, v in data.items() if k in ALLOWED_CONFIG_KEYS
+                }
                 with open("config.json", "w", encoding="utf-8") as f:
                     json.dump(filtered, f, indent=2, ensure_ascii=False)
                 self._respond(200, {"ok": True})

@@ -79,6 +79,29 @@
       gap: 12px;
     }
 
+    input[type="number"] {
+      background: #0d1b3e;
+      border: 1px solid #1e3a6e;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 10px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]:focus { border-color: #4a7ede; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #6b7db3;
+      margin-top: 2px;
+    }
+
     input[type="color"] {
       width: 48px;
       height: 44px;
@@ -141,21 +164,14 @@
 <div class="card">
   <h1>Scoreboard Configuration</h1>
 
-  <div class="section-label">Team Names</div>
+  <div class="section-label">Home Team</div>
 
   <div class="field">
-    <label for="home_team_name">Home team</label>
+    <label for="home_team_name">Team name</label>
     <input type="text" id="home_team_name" maxlength="20" placeholder="HOM">
   </div>
   <div class="field">
-    <label for="guest_team_name">Away team</label>
-    <input type="text" id="guest_team_name" maxlength="20" placeholder="GUE">
-  </div>
-
-  <div class="section-label">Accent Colors</div>
-
-  <div class="field">
-    <label>Home accent</label>
+    <label>Accent color</label>
     <div class="color-row">
       <input type="color" id="home_accent_picker">
       <input type="text" class="color-hex" id="home_accent_hex" maxlength="7" placeholder="#2b7be3">
@@ -163,13 +179,27 @@
     <div class="preview" id="home_preview"></div>
   </div>
 
+  <div class="section-label">Away Team</div>
+
   <div class="field">
-    <label>Away accent</label>
+    <label for="guest_team_name">Team name</label>
+    <input type="text" id="guest_team_name" maxlength="20" placeholder="GUE">
+  </div>
+  <div class="field">
+    <label>Accent color</label>
     <div class="color-row">
       <input type="color" id="away_accent_picker">
       <input type="text" class="color-hex" id="away_accent_hex" maxlength="7" placeholder="#ffd400">
     </div>
     <div class="preview" id="away_preview"></div>
+  </div>
+
+  <div class="section-label">Broadcast Delay</div>
+
+  <div class="field">
+    <label for="delay_tenths">Delay (tenths of a second)</label>
+    <input type="number" id="delay_tenths" min="0" max="300" step="1" placeholder="0">
+    <div class="hint">0 = no delay &nbsp;·&nbsp; 10 = 1 second &nbsp;·&nbsp; 100 = 10 seconds</div>
   </div>
 
   <button id="save_btn">Save</button>
@@ -203,6 +233,7 @@
       const cfg = await fetch(`config.json?_=${Date.now()}`).then(r => r.json());
       if (cfg.home_team_name) $("home_team_name").value = cfg.home_team_name;
       if (cfg.guest_team_name) $("guest_team_name").value = cfg.guest_team_name;
+      if (cfg.delay_tenths !== undefined) $("delay_tenths").value = cfg.delay_tenths;
       if (cfg.home_accent) {
         $("home_accent_hex").value = cfg.home_accent;
         $("home_accent_picker").value = cfg.home_accent;
@@ -236,11 +267,17 @@
       return showStatus("Away accent must be a valid hex color (e.g. #ffd400).", true);
     }
 
+    const delayVal = parseInt($("delay_tenths").value, 10);
+    if (isNaN(delayVal) || delayVal < 0) {
+      return showStatus("Delay must be a non-negative integer.", true);
+    }
+
     const payload = {
       home_team_name: $("home_team_name").value.trim(),
       guest_team_name: $("guest_team_name").value.trim(),
       home_accent: homeHex,
       away_accent: awayHex,
+      delay_tenths: delayVal,
     };
 
     try {

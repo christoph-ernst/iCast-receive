@@ -5,10 +5,12 @@ import socket
 import json
 import os
 import tempfile
+import threading
 
 HOST = ''  # Symbolic name meaning all available interfaces
 PORT = 50078  # The port to listen on
 OUTPUT_FILENAME = "match-facts.json"
+CONFIG_FILENAME = "config.json"
 
 print(f"Starting UDP server on port {PORT}...")
 
@@ -52,6 +54,17 @@ def format_period_label(time_type: str , time: str, period: str) -> str:
         return "Time Out"
 
 
+
+
+def read_delay_tenths() -> int:
+    """Read delay_tenths from config.json. Returns 0 on any error."""
+    try:
+        with open(CONFIG_FILENAME, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        val = int(cfg.get("delay_tenths", 0))
+        return max(0, val)
+    except Exception:
+        return 0
 
 
 def write_json_atomic(path: str, data: dict) -> None:
@@ -133,7 +146,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 # with open(OUTPUT_FILENAME, 'w') as json_file:
                 #     json.dump(match_facts, json_file, indent=4)
                 # print(f"Successfully updated {OUTPUT_FILENAME}")
-                write_json_atomic(OUTPUT_FILENAME, match_facts)
+                delay_tenths = read_delay_tenths()
+                delay_seconds = delay_tenths / 10
+                if delay_seconds > 0:
+                    print(f"Scheduling write in {delay_seconds:.1f}s (delay_tenths={delay_tenths})")
+                    threading.Timer(
+                        delay_seconds, write_json_atomic, args=[OUTPUT_FILENAME, match_facts]
+                    ).start()
+                else:
+                    write_json_atomic(OUTPUT_FILENAME, match_facts)
                 print(f"OK from {addr[0]}:{addr[1]} -> {OUTPUT_FILENAME}")
 
 

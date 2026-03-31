@@ -1,6 +1,7 @@
 {
-  "home_team_name": "HCR",
-  "guest_team_name": "Thun",
-  "home_accent": "#e3cb2b",
-  "away_accent": "#ff0000"
+  "home_team_name": "HCRxxx",
+  "guest_team_name": "THUyyy",
+  "home_accent": "#d7e32b",
+  "away_accent": "#ff00ae",
+  "delay_tenths": 0
 }
