@@ -127,6 +127,38 @@ overlay without hardware.
 
 ------------------------------------------------------------------------
 
+## Firewall
+
+If `tcpdump` shows packets arriving on port 50078 but the receiver
+prints nothing, a host firewall is dropping them (`tcpdump` captures
+before the firewall filters). Open the port for incoming UDP traffic.
+
+**firewalld** (Fedora, RHEL, …):
+
+``` bash
+# Check the active zone and what it allows
+firewall-cmd --get-active-zones
+sudo firewall-cmd --zone=public --list-all
+
+# Open the port now (lost on reboot / reload) ...
+sudo firewall-cmd --zone=public --add-port=50078/udp
+# ... and persist it
+sudo firewall-cmd --zone=public --add-port=50078/udp --permanent
+```
+
+Replace `public` with the zone of the interface connected to the
+scoreboard network.
+
+**ufw** (Ubuntu, Debian, …):
+
+``` bash
+sudo ufw allow 50078/udp
+```
+
+Verify the receiver is listening with `ss -ulpn | grep 50078`.
+
+------------------------------------------------------------------------
+
 ## Protocol details (receiver expects)
 
 -   **Transport:** UDP, port **50078**.
